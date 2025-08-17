@@ -43,7 +43,7 @@ This is a solution to the [QR code component challenge on Frontend Mentor](https
 
 this is the first challenge so there is no much to it just a standard html and css and some flexbox the only new thing i used is css veritables 
 
-To see how you can add code snippets, see below:
+here is it:
 
 
 ```css
@@ -73,7 +73,8 @@ i will continue learn more css and bootstrap or tailedwind
 
 ## Author
 
-- Frontend Mentor - [@yourusername](https://www.frontendmentor.io/profile/TahaMohammad315)
+- Frontend Mentor - [TahaMohammad315](https://www.frontendmentor.io/profile/TahaMohammad315)
 
 
+- GitHub - [TahaMohammad315](https://github.com/TahaMohammad315/)
 
