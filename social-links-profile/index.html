@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- displays site properly based on user's device -->
+  
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/images/favicon-32x32.png">
+  
+  <title>Frontend Mentor | Social links profile</title>
+  
+  <!-- Feel free to remove these styles or customise in your own stylesheet 👍 -->
+  <style>
+    *{
+    
+    }
+    body{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width :100vw;
+      height:100vh;
+      background-color:#141414;
+    }
+    .card{
+      display: flex;
+      flex-direction: column;
+      width:327px;
+      background-color:hsl(0,0%,12%);
+      justify-content: center;
+      align-items: center;
+      border-radius: 10px;
+      padding: 23px;
+    }
+    .card h2{
+      color:#FFFFFF;
+      margin-bottom: 7px;
+      font-weight: 700;
+
+    }
+    .card img{
+      width:90px;
+      border-radius: 50px;
+      margin-bottom: 16px;
+    }
+    p{
+      color:#C5F82A;
+      margin-bottom: 28px;
+      font-weight: 700;
+
+    }
+    .Bio{
+      margin-bottom: 27px;
+      color:#FFFFFF;
+      font-weight: 500;
+
+    }
+    .attribution {
+      font-size: 11px;
+      text-align: center;
+      color:#FFFFFF;
+    }
+    .buttons-group{
+      display: flex;
+      flex-direction: column;
+      gap:17px;
+      width:100%;
+    }
+   .card button{
+     align-self: left;
+     display: inline-block;
+      width:100%;
+      background-color:#333333;
+      color:#FFFFFF;
+      border:none;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 14px 0;
+    }
+    .attribution a {
+      color: hsl(228, 45%, 44%);
+    }
+  </style>
+</head>
+
+<body>
+  
+  <div class="card">
+    <img src="assets/images/avatar-jessica.jpeg" alt="" />
+    <h2>Jessica Randall</h2>
+    <p>London, United Kingdom</p>
+    <p class="Bio">"Front-end developer and avid reader."</p>
+    
+    <div class="buttons-group">
+      <button>GitHub</button>
+      <button>Frontend Mentor</button>
+      <button>LinkedIn</button>
+      <button>Twitter</button>
+      <button>Instagram</button>
+    </div>
+  </div>
+  
+  <div class="attribution">
+    Challenge by <a href="https://www.frontendmentor.io?ref=challenge" target="_blank">Frontend Mentor</a>.
+    Coded by <a href="#">tahame315@gmail.com</a>.
+  </div>
+</body>
+
+</html>
