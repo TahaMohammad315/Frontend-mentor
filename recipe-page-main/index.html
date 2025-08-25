@@ -74,16 +74,19 @@
     }
     table{
       width:100%;
-      border-style: collapse;
+      border-collapse: collapse;
     }
     th ,td{
       text-align: left;
       padding: 10px;
     }
+    td{
+      color:var(--rust);
+    }
     tr{
-      
+      border-bottom: 1px solid var(--beige);
     }
-    }
+    
     .attribution {
       font-size: 11px;
       text-align: center;
@@ -159,19 +162,19 @@
       <table>
         <tr>
           <th>Calories</th>
-          <td>277kcal</td>
+          <td><strong>277kcal</strong></td>
         </tr>
         <tr>
           <th>Carbs</th>
-          <td>0g</td>
+          <td><strong>0g</strong></td>
         </tr>
         <tr>
           <th>Protein</th>
-          <td>20g</td>
+          <td><strong>20g</strong></td>
         </tr>
         <tr>
           <th>Fat</th>
-          <td>22g</td>
+          <td><strong>22g</strong></td>
         </tr>
       </table>
     </section>
