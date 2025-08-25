@@ -33,6 +33,57 @@
       src: url(assets/fonts/young-serif/YoungSerif-Regular.ttf);
     }
     
+    * {
+      margin: 0px;
+      padding: 0px;
+    }
+    body{
+      font-family: Outfit;
+      color:var(--taupe);
+    }
+    .main-title {
+      font-family: YoungSerif;
+      color: var(--charcoal);
+      margin-bottom: 20px;
+    }
+    .short-description , section {
+      margin: 32px;
+    }
+    img {
+      max-width: 100%;
+    }
+    .preparation{
+      background-color: var(--rose);
+      padding: 32px;
+      border-radius: 10px;
+    }
+    .preparation h3{
+      color:var(--raspberry);
+      margin-bottom: 20px;
+    }
+    li{
+      margin-left: 16px;
+      padding-left: 16px;
+      line-height: 30px;
+    }
+    
+    h2{
+      font-family: YoungSerif;
+      color:var(--rust);
+      margin-bottom:20px;
+    }
+    table{
+      width:100%;
+      border-style: collapse;
+    }
+    th ,td{
+      text-align: left;
+      padding: 10px;
+    }
+    tr{
+      
+    }
+    }
     .attribution {
       font-size: 11px;
       text-align: center;
@@ -43,17 +94,20 @@
     }
   </style>
 </head>
-<header>
-  <img src="assets/images/image-omelette.jpeg" alt="">
-  <h1>Simple Omelette Recipe</h1>
-  
-  <p>An easy and quick dish, perfect for any meal. This classic omelette combines beaten eggs cooked to perfection, optionally filled with your choice of cheese, vegetables, or meats.</p>
-  
-</header>
-
-
 
 <body>
+  
+  <header>
+    <img src="assets/images/image-omelette.jpeg" alt="">
+    
+    <div class="short-description">
+      <h1 class="main-title">Simple Omelette Recipe</h1>
+      
+      <p>An easy and quick dish, perfect for any meal. This classic omelette combines beaten eggs cooked to perfection, optionally filled with your choice of cheese, vegetables, or meats.</p>
+    </div>
+    
+    
+  </header>
   <main>
     <section class="preparation">
       <h3>Preparation time</h3>
@@ -102,7 +156,7 @@
       
       <p>The table below shows nutritional values per serving without the additional fillings.</p>
       
-      <table border="1" cellpadding="8" cellspacing="0">
+      <table>
         <tr>
           <th>Calories</th>
           <td>277kcal</td>
@@ -124,6 +178,7 @@
     
     
   </main>
+  
   <footer>
     <div class="attribution">
       Challenge by <a href="https://www.frontendmentor.io?ref=challenge" target="_blank">Frontend Mentor</a>.
