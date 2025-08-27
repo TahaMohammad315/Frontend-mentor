@@ -38,6 +38,6 @@ i also used a lot of new css concepts to me
 
 ## Author
 
-- Frontend Mentor - [@yourusername](https://www.frontendmentor.io/profile/TahaMohammad315)
+- Frontend Mentor - [@tahaMohammad315](https://www.frontendmentor.io/profile/TahaMohammad315)
 
 
