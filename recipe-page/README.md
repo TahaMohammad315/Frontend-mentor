@@ -17,8 +17,7 @@ This is a solution to the [Recipe page challenge on Frontend Mentor](https://www
 
 ### Links
 
-- Solution URL: [GitHub 
-](https://github.com/TahaMohammad315/Frontend-mentor/tree/main/recipe-page)
+- Solution URL: [GitHub](https://github.com/TahaMohammad315/Frontend-mentor/tree/main/recipe-page)
 - Live Site URL: [live site](https://dreamy-pony-858536.netlify.app/)
 
 ## My process
