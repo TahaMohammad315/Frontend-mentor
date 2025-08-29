@@ -1,0 +1,115 @@
+   * {
+     margin: 0;
+     padding: 0;
+   }
+   
+   body {
+     background-color: var(--yellow);
+     height: 100vh;
+     width: 100vw;
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+     font-weight: var(--font-weight-regular);
+   }
+   
+   :root {
+     --yellow: hsl(47, 88%, 63%);
+     --white: hsl(0, 0%, 100%);
+     --light-gray: hsl(0, 0%, 42%);
+     --dark-gray: hsl(0, 0%, 7%);
+     
+     --font-weight-regular: 500;
+     --font-weight-bold: 800;
+     
+   }
+   
+   @font-face {
+     font-family: "Figtree";
+     src: url(assets/fonts/Figtree-VariableFont_wght.ttf);
+   }
+   
+   .container {
+     width: 327px;
+     background-color: var(--white);
+     border: 1px solid black;
+     border-radius: 15px;
+     display: flex;
+     flex-direction: column;
+     padding: 15px;
+     box-shadow: 10px 10px black;
+     margin-bottom: 10px;
+   }
+   
+   .container img {
+     border-radius: 10px;
+     
+   }
+   
+   .container h4 {
+     align-self: flex-start;
+     background-color: var(--yellow);
+     margin: 10px 0px;
+     display: inline-block;
+     box-sizing: border-box;
+     padding: 10px;
+     font-family: "Figtree";
+     font-weight: var(--font-weight-bold);
+     color: var(--dark-gray);
+     border-radius: 5px;
+     margin-bottom: 12px;
+   }
+   
+   .lecturer {
+     display: flex;
+     width: 100%;
+     height: 50px;
+     align-items: center;
+     gap: 10px;
+   }
+   
+   h3 {
+     margin-bottom: 12px;
+     
+   }
+   
+   h3 a {
+     font-family: "Figtree";
+     font-weight: var(--font-weight-bold);
+     color: var(--dark-gray);
+     text-decoration: none;
+   }
+   
+   h3 a:hover {
+     color: var(--yellow);
+   }
+   
+   .lecturer img {
+     width: 32px;
+     height: 32px;
+   }
+   
+   .lecturer p {
+     font-weight: var(--font-weight-bold);
+     color: var(--dark-gray);
+   }
+   
+   .attribution {
+     font-size: 11px;
+     text-align: center;
+   }
+   
+   .attribution a {
+     color: hsl(228, 45%, 44%);
+   }
+   
+   .date {
+     margin-bottom: 12px;
+   }
+   
+   .description {
+     margin-bottom: 24px;
+     font-size: 16px;
+     color: var(--light-gray);
+   }
