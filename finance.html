@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Tracker</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f5f7fa;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .container {
+    background: white;
+    width: 100%;
+    max-width: 420px;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  }
+
+  h2 {
+    text-align: center;
+    color: #0077ff;
+  }
+
+  .balance {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .balance h3 {
+    margin: 5px 0;
+  }
+
+  .summary {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    background: #f1f1f1;
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .income { color: #2ecc71; }
+  .expense { color: #e74c3c; }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  input, select, button {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+
+  button {
+    background: #0077ff;
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #005fd1;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9f9f9;
+    margin: 5px 0;
+    padding: 10px;
+    border-left: 5px solid;
+    border-radius: 6px;
+    flex-wrap: wrap;
+  }
+
+  .desc {
+    font-weight: bold;
+  }
+
+  .date {
+    font-size: 0.8em;
+    color: #777;
+  }
+
+  .income-item { border-color: #2ecc71; }
+  .expense-item { border-color: #e74c3c; }
+
+  .delete {
+    cursor: pointer;
+    color: #e74c3c;
+    margin-left: 10px;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>💰 Finance Tracker</h2>
+
+    <div class="balance">
+      <h3>Balance: $<span id="balance">0</span></h3>
+    </div>
+
+    <div class="summary">
+      <div>Income: <span class="income" id="income">0</span></div>
+      <div>Expense: <span class="expense" id="expense">0</span></div>
+    </div>
+
+    <form id="form">
+      <input type="text" id="desc" placeholder="Description" required>
+      <input type="number" id="amount" placeholder="Amount" required>
+      <select id="type">
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
+      <input type="date" id="date">
+      <button type="submit">Add</button>
+    </form>
+
+    <ul id="list"></ul>
+  </div>
+
+<script>
+  const form = document.getElementById('form');
+  const list = document.getElementById('list');
+  const balanceEl = document.getElementById('balance');
+  const incomeEl = document.getElementById('income');
+  const expenseEl = document.getElementById('expense');
+
+  let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+  function updateValues() {
+    const income = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const expense = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    balanceEl.textContent = (income - expense).toFixed(2);
+    incomeEl.textContent = income.toFixed(2);
+    expenseEl.textContent = expense.toFixed(2);
+  }
+
+  function renderList() {
+    list.innerHTML = '';
+    transactions.forEach((t, index) => {
+      const li = document.createElement('li');
+      li.classList.add(t.type === 'income' ? 'income-item' : 'expense-item');
+      li.innerHTML = `
+        <div class="desc">${t.desc}</div>
+        <div class="date">${t.date}</div>
+        <div>${t.type === 'income' ? '+' : '-'}$${t.amount.toFixed(2)}</div>
+        <span class="delete" onclick="deleteTransaction(${index})">✖</span>
+      `;
+      list.appendChild(li);
+    });
+    updateValues();
+  }
+
+  function deleteTransaction(index) {
+    transactions.splice(index, 1);
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+    renderList();
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const desc = document.getElementById('desc').value.trim();
+    const amount = parseFloat(document.getElementById('amount').value);
+    const type = document.getElementById('type').value;
+    const dateInput = document.getElementById('date').value;
+    const today = new Date().toISOString().split('T')[0];
+    const date = dateInput || today;
+
+    if (desc && amount > 0) {
+      transactions.push({ desc, amount, type, date });
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+      renderList();
+      form.reset();
+    }
+  });
+
+  renderList();
+</script>
+</body>
+</html>
