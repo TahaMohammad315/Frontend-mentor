@@ -59,5 +59,5 @@ i will add a figma design later if i didn't forget 😅
 
 ## Author
 
-- Frontend Mentor - [@yourusername](https://www.frontendmentor.io/profile/TahaMohammad315)
+- Frontend Mentor - [@TahaMohammad315](https://www.frontendmentor.io/profile/TahaMohammad315)
 

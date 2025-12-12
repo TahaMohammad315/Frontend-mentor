@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WebGL 2D Drawing App</title>
+  <style>
+    :root{--bg:#0f1724;--panel:#0b1220;--accent:#06b6d4;--muted:#9ca3af}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial}
+    .app{display:flex;height:100vh;background:linear-gradient(180deg,var(--bg),#071020);color:#fff}
+    .sidebar{width:280px;padding:18px;background:rgba(255,255,255,0.03);box-shadow:inset 0 0 30px rgba(0,0,0,0.5)}
+    .canvas-wrap{flex:1;display:flex;align-items:stretch}
+    canvas{flex:1;display:block;width:100%;height:100%;background:#fff;border-left:1px solid rgba(255,255,255,0.03)}
+    label{display:block;margin-top:12px;font-size:13px;color:var(--muted)}
+    input[type=range]{width:100%}
+    .controls{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+    button{background:var(--panel);border:1px solid rgba(255,255,255,0.04);color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+    .row{display:flex;gap:8px;align-items:center}
+    .title{font-weight:600;font-size:18px}
+    .muted{color:var(--muted);font-size:13px}
+    .color-swatch{width:34px;height:34px;border-radius:6px;border:1px solid rgba(0,0,0,0.2)}
+    .footer{margin-top:16px;font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="sidebar">
+      <div class="title">WebGL 2D Drawing</div>
+      <div class="muted">GPU-accelerated 2D strokes (WebGL)</div>
+
+      <label>Color</label>
+      <div class="row">
+        <input id="color" class="color-swatch" type="color" value="#000000">
+        <input id="opacity" type="range" min="0" max="1" step="0.01" value="1">
+      </div>
+
+      <label>Brush size (px)</label>
+      <input id="size" type="range" min="1" max="128" value="10">
+      <div class="controls">
+        <button id="undo">Undo</button>
+        <button id="clear">Clear</button>
+        <button id="save">Save PNG</button>
+        <button id="eraser">Eraser</button>
+      </div>
+
+      <label>Hints</label>
+      <div class="muted">Draw with mouse or touch. Use Undo/Clear/Save. Eraser sets transparent strokes.</div>
+      <div class="footer">Export uses canvas.toDataURL — transparent background supported.</div>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="glcanvas"></canvas>
+    </div>
+  </div>
+
+<script>
+// WebGL 2D drawing app
+// - Strokes are built from quads (triangle pairs) for each segment
+// - Round caps are drawn as gl.POINTS (fragment shader discards outside circle)
+// - Each stroke stores vertices, color and size in an array for undo
+
+const canvas = document.getElementById('glcanvas');
+const gl = canvas.getContext('webgl', {alpha:true, premultipliedAlpha:false});
+if(!gl) { alert('WebGL not supported in this browser'); throw new Error('WebGL unsupported'); }
+
+// --- resize handling ---
+function resize(){
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.floor(canvas.clientWidth * dpr);
+  const h = Math.floor(canvas.clientHeight * dpr);
+  if(canvas.width !== w || canvas.height !== h){
+    canvas.width = w; canvas.height = h;
+    gl.viewport(0,0,w,h);
+  }
+}
+window.addEventListener('resize', resize);
+resize();
+
+// --- simple shader helpers ---
+function compileShader(type, src){
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function linkProgram(vs, fs){
+  const p = gl.createProgram(); gl.attachShader(p, vs); gl.attachShader(p, fs); gl.linkProgram(p);
+  if(!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+
+// Vertex shader for quads (positions in clip space)
+const quadVS = `attribute vec2 a_pos; attribute vec2 a_uv; uniform vec2 u_resolution; varying vec2 v_uv; void main(){ vec2 zeroToOne = a_pos / u_resolution; vec2 clip = zeroToOne * 2.0 - 1.0; gl_Position = vec4(clip * vec2(1.0, -1.0), 0.0, 1.0); v_uv = a_uv; }`;
+const quadFS = `precision mediump float; uniform vec4 u_color; varying vec2 v_uv; void main(){ gl_FragColor = u_color; }`;
+
+// Shader for round caps (point sprite)
+const pointVS = `attribute vec2 a_pos; uniform vec2 u_resolution; uniform float u_pointSize; void main(){ vec2 zeroToOne = a_pos / u_resolution; vec2 clip = zeroToOne * 2.0 - 1.0; gl_Position = vec4(clip * vec2(1.0, -1.0), 0.0, 1.0); gl_PointSize = u_pointSize; }`;
+const pointFS = `precision mediump float; uniform vec4 u_color; void main(){ vec2 coord = gl_PointCoord * 2.0 - 1.0; float r = length(coord); if(r>1.0) discard; gl_FragColor = u_color; }`;
+
+const vsq = compileShader(gl.VERTEX_SHADER, quadVS);
+const fsq = compileShader(gl.FRAGMENT_SHADER, quadFS);
+const progQuad = linkProgram(vsq, fsq);
+
+const vsp = compileShader(gl.VERTEX_SHADER, pointVS);
+const fsp = compileShader(gl.FRAGMENT_SHADER, pointFS);
+const progPoint = linkProgram(vsp, fsp);
+
+// Attribute/uniform locations for quad program
+const quad_a_pos = gl.getAttribLocation(progQuad, 'a_pos');
+const quad_a_uv = gl.getAttribLocation(progQuad, 'a_uv');
+const quad_u_resolution = gl.getUniformLocation(progQuad, 'u_resolution');
+const quad_u_color = gl.getUniformLocation(progQuad, 'u_color');
+
+// For points
+const point_a_pos = gl.getAttribLocation(progPoint, 'a_pos');
+const point_u_resolution = gl.getUniformLocation(progPoint, 'u_resolution');
+const point_u_pointSize = gl.getUniformLocation(progPoint, 'u_pointSize');
+const point_u_color = gl.getUniformLocation(progPoint, 'u_color');
+
+// Buffers
+const quadBuffer = gl.createBuffer();
+const pointBuffer = gl.createBuffer();
+
+// Blend
+gl.enable(gl.BLEND);
+gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+// State: strokes
+let strokes = []; // each stroke: {vertices: Float32Array (x,y,u,v), points: Float32Array (x,y), color:[r,g,b,a], size}
+let currentStroke = null;
+
+function hexToRgba(hex, a){
+  const bigint = parseInt(hex.replace('#',''), 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return [r/255, g/255, b/255, a];
+}
+
+// Create quad vertices for segment p0->p1 with given width
+function makeSegmentQuad(p0, p1, halfWidth){
+  const dx = p1[0]-p0[0];
+  const dy = p1[1]-p0[1];
+  const len = Math.hypot(dx,dy) || 1.0;
+  const nx = -dy/len; const ny = dx/len; // normal
+  const ax = p0[0] + nx*halfWidth, ay = p0[1] + ny*halfWidth;
+  const bx = p1[0] + nx*halfWidth, by = p1[1] + ny*halfWidth;
+  const cx = p1[0] - nx*halfWidth, cy = p1[1] - ny*halfWidth;
+  const dx2 = p0[0] - nx*halfWidth, dy2 = p0[1] - ny*halfWidth;
+  // two triangles: a,b,c and a,c,d
+  return [ax,ay, 0,0, bx,by,1,0, cx,cy,1,1, ax,ay,0,0, cx,cy,1,1, dx2,dy2,0,1];
+}
+
+function startStroke(x,y,color,size, isEraser=false){
+  currentStroke = {points: [[x,y]], vertices: [], color, size, isEraser};
+}
+function addPointToStroke(x,y){
+  if(!currentStroke) return;
+  const pts = currentStroke.points;
+  const last = pts[pts.length-1];
+  const dx = x-last[0]; const dy = y-last[1];
+  if(dx*dx+dy*dy < 1) return; // skip tiny moves
+  pts.push([x,y]);
+  // create quad for last segment
+  const quad = makeSegmentQuad(last, [x,y], currentStroke.size/2);
+  currentStroke.vertices.push(...quad);
+}
+function endStroke(){
+  if(!currentStroke) return;
+  // convert vertices arrays to typed arrays and push to strokes
+  const vertArr = new Float32Array(currentStroke.vertices);
+  const pointArr = new Float32Array(currentStroke.points.flat());
+  strokes.push({vertices:vertArr, points:pointArr, color:currentStroke.color, size:currentStroke.size, isEraser:currentStroke.isEraser});
+  currentStroke = null;
+}
+
+// Render loop
+function render(){
+  resize();
+  gl.clearColor(0,0,0,0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  const resolution = [canvas.width, canvas.height];
+
+  // draw all strokes
+  for(const s of strokes.concat(currentStroke ? [currentStroke] : [])){
+    const col = s.color;
+    const rgba = new Float32Array(col);
+
+    // Draw quads
+    if(s.vertices && s.vertices.length){
+      gl.useProgram(progQuad);
+      gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(s.vertices), gl.STREAM_DRAW);
+      const stride = 4 * 4; // 4 floats per vertex (x,y,u,v)
+      gl.enableVertexAttribArray(quad_a_pos);
+      gl.vertexAttribPointer(quad_a_pos, 2, gl.FLOAT, false, stride, 0);
+      gl.enableVertexAttribArray(quad_a_uv);
+      gl.vertexAttribPointer(quad_a_uv, 2, gl.FLOAT, false, stride, 8);
+      gl.uniform2fv(quad_u_resolution, resolution);
+      // if eraser, draw with destination-out by changing blend func and color alpha
+      if(s.isEraser){
+        gl.blendFunc(gl.ZERO, gl.ONE_MINUS_SRC_ALPHA);
+        gl.uniform4f(quad_u_color, 0.0,0.0,0.0,1.0);
+      } else {
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        gl.uniform4fv(quad_u_color, rgba);
+      }
+      gl.drawArrays(gl.TRIANGLES, 0, s.vertices.length/4);
+    }
+
+    // Draw round caps as points at each stroke point
+    if(s.points && s.points.length){
+      gl.useProgram(progPoint);
+      gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, s.points instanceof Float32Array ? s.points : new Float32Array(s.points.flat()), gl.STREAM_DRAW);
+      gl.enableVertexAttribArray(point_a_pos);
+      gl.vertexAttribPointer(point_a_pos, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform2fv(point_u_resolution, resolution);
+      gl.uniform1f(point_u_pointSize, s.size * (window.devicePixelRatio||1));
+      if(s.isEraser){
+        gl.blendFunc(gl.ZERO, gl.ONE_MINUS_SRC_ALPHA);
+        gl.uniform4f(point_u_color, 0,0,0,1);
+      } else {
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        gl.uniform4fv(point_u_color, rgba);
+      }
+      gl.drawArrays(gl.POINTS, 0, s.points.length/2);
+    }
+  }
+
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+
+// --- input handling (mouse & touch) ---
+let drawing = false;
+let isEraserMode = false;
+
+function getPointerPos(e){
+  const rect = canvas.getBoundingClientRect();
+  let clientX, clientY;
+  if(e.touches && e.touches[0]){ clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+  else { clientX = e.clientX; clientY = e.clientY; }
+  const x = (clientX - rect.left) * (canvas.width / rect.width);
+  const y = (clientY - rect.top) * (canvas.height / rect.height);
+  return [x,y];
+}
+
+canvas.addEventListener('pointerdown', (ev)=>{
+  canvas.setPointerCapture(ev.pointerId);
+  drawing = true;
+  const [x,y] = getPointerPos(ev);
+  const colorHex = document.getElementById('color').value;
+  const opacity = parseFloat(document.getElementById('opacity').value);
+  const size = parseFloat(document.getElementById('size').value);
+  const color = hexToRgba(colorHex, opacity);
+  startStroke(x,y,color,size, isEraserMode);
+});
+canvas.addEventListener('pointermove', (ev)=>{
+  if(!drawing) return;
+  const [x,y] = getPointerPos(ev);
+  addPointToStroke(x,y);
+});
+canvas.addEventListener('pointerup', (ev)=>{
+  if(!drawing) return;
+  drawing = false;
+  const [x,y] = getPointerPos(ev);
+  addPointToStroke(x,y);
+  endStroke();
+});
+canvas.addEventListener('pointercancel', ()=>{ if(drawing){ drawing=false; endStroke(); }});
+
+// UI
+document.getElementById('undo').addEventListener('click', ()=>{ strokes.pop(); });
+document.getElementById('clear').addEventListener('click', ()=>{ strokes = []; currentStroke = null; gl.clear(gl.COLOR_BUFFER_BIT); });
+const eraserBtn = document.getElementById('eraser');
+eraserBtn.addEventListener('click', ()=>{ isEraserMode = !isEraserMode; eraserBtn.textContent = isEraserMode ? 'Eraser ✓' : 'Eraser'; });
+
+// Save: read pixels and convert to PNG
+document.getElementById('save').addEventListener('click', ()=>{
+  // create temporary 2D canvas to flip Y because WebGL has flipped Y
+  const w = canvas.width, h = canvas.height;
+  const pixels = new Uint8Array(w*h*4);
+  gl.readPixels(0,0,w,h,gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  const ctx = document.createElement('canvas').getContext('2d');
+  ctx.canvas.width = w; ctx.canvas.height = h;
+  const imageData = ctx.createImageData(w,h);
+  // flip Y while copying
+  for(let y=0;y<h;y++){
+    const srcRow = h - 1 - y;
+    for(let x=0;x<w;x++){
+      const si = (srcRow*w + x)*4;
+      const di = (y*w + x)*4;
+      imageData.data[di+0] = pixels[si+0];
+      imageData.data[di+1] = pixels[si+1];
+      imageData.data[di+2] = pixels[si+2];
+      imageData.data[di+3] = pixels[si+3];
+    }
+  }
+  ctx.putImageData(imageData,0,0);
+  const link = document.createElement('a');
+  link.download = 'drawing.png';
+  link.href = ctx.canvas.toDataURL('image/png');
+  link.click();
+});
+
+// pointer events polyfill for older browsers
+canvas.style.touchAction = 'none';
+
+// initialize with a faint grid background drawn via 2D context into a texture could be done later
+
+</script>
+</body>
+</html>
