@@ -1,0 +1,195 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Minecraft Entity Behavior Editor (Beginner Friendly)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    header {
+      background: #020617;
+      padding: 16px;
+      text-align: center;
+      border-bottom: 1px solid #1e293b;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 16px;
+    }
+    .card {
+      background: #020617;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+    input, select, textarea {
+      width: 100%;
+      margin-top: 4px;
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      background: #020617;
+      color: #e5e7eb;
+      border: 1px solid #1e293b;
+    }
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+      font-family: monospace;
+    }
+    button {
+      margin-top: 16px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: none;
+      background: #38bdf8;
+      color: #020617;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0ea5e9;
+    }
+    .behaviors-list {
+      margin-top: 10px;
+    }
+    .behavior-item {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 8px;
+      margin-top: 8px;
+      font-size: 0.85rem;
+    }
+    footer {
+      text-align: center;
+      padding: 12px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🧱 Minecraft Entity Behavior Editor</h1>
+    <p>Beginner-friendly visual tool for Bedrock behavior JSON</p>
+  </header>  <main>
+    <div class="card">
+      <h2>Entity Info</h2>
+      <label>Entity Identifier
+        <input id="entityId" placeholder="example: mypack:my_entity" />
+      </label>
+      <label>Health
+        <input id="health" type="number" value="20" />
+      </label>
+      <label>Movement Speed
+        <input id="speed" type="number" step="0.1" value="0.25" />
+      </label><h2 style="margin-top:20px">Add Behavior</h2>
+  <label>Behavior Type
+    <select id="behaviorType">
+      <option value="minecraft:behavior.random_stroll">Random Stroll</option>
+      <option value="minecraft:behavior.look_at_player">Look At Player</option>
+      <option value="minecraft:behavior.melee_attack">Melee Attack</option>
+      <option value="minecraft:behavior.follow_owner">Follow Owner</option>
+    </select>
+  </label>
+  <label>Priority (lower = more important)
+    <input id="priority" type="number" value="1" />
+  </label>
+  <button onclick="addBehavior()">Add Behavior</button>
+
+  <div class="behaviors-list" id="behaviors"></div>
+</div>
+
+<div class="card">
+  <h2>Generated behavior.json</h2>
+  <textarea id="output" readonly></textarea>
+  <button onclick="generateJSON()">Generate JSON</button>
+  <button onclick="copyJSON()">Copy to Clipboard</button>
+</div>
+
+  </main>  <footer>
+    Made for beginners • No mods required • Single HTML file
+  </footer>  <script>
+    const behaviorData = [];
+
+    function addBehavior() {
+      const type = document.getElementById('behaviorType').value;
+      const priority = parseInt(document.getElementById('priority').value);
+
+      behaviorData.push({ type, priority });
+      renderBehaviors();
+    }
+
+    function renderBehaviors() {
+      const container = document.getElementById('behaviors');
+      container.innerHTML = '';
+      behaviorData.forEach((b, i) => {
+        const div = document.createElement('div');
+        div.className = 'behavior-item';
+        div.textContent = `${i + 1}. ${b.type} (priority ${b.priority})`;
+        container.appendChild(div);
+      });
+    }
+
+    function generateJSON() {
+      const id = document.getElementById('entityId').value || 'mypack:entity';
+      const health = parseInt(document.getElementById('health').value);
+      const speed = parseFloat(document.getElementById('speed').value);
+
+      const behaviors = {};
+      behaviorData.forEach(b => {
+        behaviors[b.type] = { priority: b.priority };
+      });
+
+      const json = {
+        format_version: '1.20.0',
+        'minecraft:entity': {
+          description: {
+            identifier: id,
+            is_spawnable: true,
+            is_summonable: true
+          },
+          components: {
+            'minecraft:health': { value: health, max: health },
+            'minecraft:movement': { value: speed },
+            ...behaviors
+          }
+        }
+      };
+
+      document.getElementById('output').value = JSON.stringify(json, null, 2);
+    }
+
+    function copyJSON() {
+      const output = document.getElementById('output');
+      output.select();
+      document.execCommand('copy');
+      alert('JSON copied to clipboard!');
+    }
+  </script></body>
+</html>
